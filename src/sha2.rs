@@ -23,7 +23,7 @@ pub fn le_to_be(num: u32) -> u32 {
 }
 
 /// right rotate a u32 by n bits
-pub fn right_rotate(num: u32, n: u8) -> u32 {
+pub fn rotr(num: u32, n: u8) -> u32 {
     (num >> n) | (num << (32 - n))
 }
 
@@ -70,16 +70,16 @@ impl Sha2 {
 	let mut total_size: u64 = 0;
 	let mut has_marked_1: bool = false;
 	let mut has_seen_0: bool = false;
+	let mut chunk = Vec::with_capacity(chunk_size);
+
 	loop {
-	    let mut chunk = Vec::with_capacity(chunk_size);
+	    chunk.resize(0, 0);
 	    let n = file.by_ref().take(chunk_size as u64).read_to_end(&mut chunk)?;
 	    if has_seen_0 {
 		break;
 	    }
 
 	    total_size += (n * 8) as u64;
-	    //println!("size of current chunk: {:?}", n);
-	    //println!("size of max chunk: {:?}", chunk_size);
 
 	    //if n + 1 + 8 <= 512/8, we can fit the length to the end of array, otherwise we have to append size to next chunk
 	    if (n + 1 + 8) <= chunk_size {
@@ -97,7 +97,7 @@ impl Sha2 {
 		has_marked_1 = true;
 	    }
 	    chunk.resize(chunk_size, 0);
-	    //println!("{:?}", chunk);
+
 	    //create a 64-entry message schedule array w[0..63] of 32-bit words
 	    let mut w:[u32; 64] = [0; 64];
 
@@ -111,33 +111,28 @@ impl Sha2 {
 		    | le_to_be((chunk[i * 4 + 3] as u32) << 24);
 	    }
 
-	    //println!("{:?}", w);
-
 	    // Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array:
 	    for i in 16..64 {
-		let s0 = right_rotate(w[i-15], 7) ^
-		    right_rotate(w[i-15], 18) ^
+		let s0 = rotr(w[i-15], 7) ^
+		    rotr(w[i-15], 18) ^
 		    (w[i-15] >> 3);
 
-		let s1 = right_rotate(w[i-2], 17) ^
-		    right_rotate(w[i-2], 19) ^
+		let s1 = rotr(w[i-2], 17) ^
+		    rotr(w[i-2], 19) ^
 		    (w[i-2] >> 10);
 
-		let tmp: u64 = (w[i-16] as u64 + s0 as u64 + w[i-7] as u64 + s1 as u64) % 2u64.pow(32);
-		w[i] = tmp as u32;
+		w[i] = ((w[i-16] as u64 + s0 as u64 + w[i-7] as u64 + s1 as u64) % 2u64.pow(32)) as u32;
 	    }
 
-	    //println!("{:?}", w);
-
-	    // Initialize working variables to current hash value
 	    {
+		// Initialize working variables to current hash value
 		let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h] = self.h;
 
 		// Compression function main loop
 		for i in 0..64 {
-		    let s1 = right_rotate(e, 6)
-			^ right_rotate(e, 11)
-			^ right_rotate(e, 25);
+		    let s1 = rotr(e, 6)
+			^ rotr(e, 11)
+			^ rotr(e, 25);
 
 		    let ch = (e & f) ^ (!e & g);
 
@@ -147,9 +142,9 @@ impl Sha2 {
 				       self.k[i] as u64 +
 				       w[i] as u64) % 2u64.pow(32)) as u32;
 
-		    let s0 = right_rotate(a, 2)
-			^ right_rotate(a, 13)
-			^ right_rotate(a, 22);
+		    let s0 = rotr(a, 2)
+			^ rotr(a, 13)
+			^ rotr(a, 22);
 
 		    let maj = (a & b) ^ (a & c) ^ (b & c);
 
