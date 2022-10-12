@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "sha2_rust"
+name = "sha2rust"
 version = "0.1.0"
