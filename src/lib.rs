@@ -111,8 +111,10 @@ impl Sha2 {
                     ^ u32::rotate_right(self.w[i - 2], 19)
                     ^ (self.w[i - 2] >> 10);
 
-		self.w[i] = self.w[i-16].wrapping_add(s0).wrapping_add(self.w[i-7]).wrapping_add(s1);
-                //self.w[i] = (self.w[i - 16] + s0 + self.w[i - 7] + s1) % 2u32.pow(32);
+                self.w[i] = self.w[i - 16]
+                    .wrapping_add(s0)
+                    .wrapping_add(self.w[i - 7])
+                    .wrapping_add(s1);
             }
 
             self.compress();
@@ -134,16 +136,14 @@ impl Sha2 {
         // Compression function main loop
         for i in 0..64 {
             let s1 = u32::rotate_right(e, 6) ^ u32::rotate_right(e, 11) ^ u32::rotate_right(e, 25);
-
             let ch = (e & f) ^ (!e & g);
-
-            //let temp1 = h + s1 + ch + self.k[i] + self.w[i];
-	    let temp1 = h.wrapping_add(s1).wrapping_add(ch).wrapping_add(self.k[i]).wrapping_add(self.w[i]);
-
+            let temp1 = h
+                .wrapping_add(s1)
+                .wrapping_add(ch)
+                .wrapping_add(self.k[i])
+                .wrapping_add(self.w[i]);
             let s0 = u32::rotate_right(a, 2) ^ u32::rotate_right(a, 13) ^ u32::rotate_right(a, 22);
-
             let maj = (a & b) ^ (a & c) ^ (b & c);
-
             let temp2 = s0.wrapping_add(maj);
 
             h = g;
