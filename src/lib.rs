@@ -13,20 +13,6 @@ pub struct Sha2 {
     w: [u32; 64],
 }
 
-/// little endian to big endian
-pub fn le_to_be(num: u32) -> u32 {
-    let b0 = (num & 0x000000ff) << 24;
-    let b1 = (num & 0x0000ff00) << 8;
-    let b2 = (num & 0x00ff0000) >> 8;
-    let b3 = (num & 0xff000000) >> 24;
-    b0 | b1 | b2 | b3
-}
-
-/// right rotate a u32 by n bits
-pub fn rotr(num: u32, n: u8) -> u32 {
-    (num >> n) | (num << (32 - n))
-}
-
 impl Default for Sha2 {
     fn default() -> Self {
         Self::new()
@@ -112,17 +98,18 @@ impl Sha2 {
             // copy every 4 segments in chunk into 1 32-bit word, since 1 segment is u8
             // also switch to big endian
             for i in 0..16 {
-                self.w[i] = le_to_be(chunk[i * 4] as u32)
-                    | le_to_be((chunk[i * 4 + 1] as u32) << 8)
-                    | le_to_be((chunk[i * 4 + 2] as u32) << 16)
-                    | le_to_be((chunk[i * 4 + 3] as u32) << 24);
+                self.w[i] = u32::from_be_bytes(chunk[i * 4..i * 4 + 4].try_into().unwrap());
             }
 
             // Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array:
             for i in 16..64 {
-                let s0 = rotr(self.w[i - 15], 7) ^ rotr(self.w[i - 15], 18) ^ (self.w[i - 15] >> 3);
+                let s0 = u32::rotate_right(self.w[i - 15], 7)
+                    ^ u32::rotate_right(self.w[i - 15], 18)
+                    ^ (self.w[i - 15] >> 3);
 
-                let s1 = rotr(self.w[i - 2], 17) ^ rotr(self.w[i - 2], 19) ^ (self.w[i - 2] >> 10);
+                let s1 = u32::rotate_right(self.w[i - 2], 17)
+                    ^ u32::rotate_right(self.w[i - 2], 19)
+                    ^ (self.w[i - 2] >> 10);
 
                 self.w[i] = ((self.w[i - 16] as u64 + s0 as u64 + self.w[i - 7] as u64 + s1 as u64)
                     % 2u64.pow(32)) as u32;
@@ -146,7 +133,7 @@ impl Sha2 {
 
         // Compression function main loop
         for i in 0..64 {
-            let s1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+            let s1 = u32::rotate_right(e, 6) ^ u32::rotate_right(e, 11) ^ u32::rotate_right(e, 25);
 
             let ch = (e & f) ^ (!e & g);
 
@@ -154,7 +141,7 @@ impl Sha2 {
                 ((h as u64 + s1 as u64 + ch as u64 + self.k[i] as u64 + self.w[i] as u64)
                     % 2u64.pow(32)) as u32;
 
-            let s0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+            let s0 = u32::rotate_right(a, 2) ^ u32::rotate_right(a, 13) ^ u32::rotate_right(a, 22);
 
             let maj = (a & b) ^ (a & c) ^ (b & c);
 
