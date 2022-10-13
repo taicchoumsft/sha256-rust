@@ -59,8 +59,8 @@ impl Sha2 {
         let mut file = File::open(&path)?;
 
         // Break into 512-bit chunks - every element in the vector represents 1 byte
-        let chunk_size = 0x200 / 8;
-        let mut total_size: u64 = 0;
+        let chunk_size: usize = 0x200 / 8;
+        let mut total_size: usize = 0;
         let mut has_marked_1: bool = false;
         let mut has_seen_0: bool = false;
         let mut chunk = Vec::with_capacity(chunk_size);
@@ -75,7 +75,7 @@ impl Sha2 {
                 break;
             }
 
-            total_size += (n * 8) as u64;
+            total_size += n * 8;
 
             //if n + 1 + 8 <= 512/8, we can fit the length to the end of array, otherwise we have to append size to next chunk
             if (n + 1 + 8) <= chunk_size {
@@ -111,8 +111,7 @@ impl Sha2 {
                     ^ u32::rotate_right(self.w[i - 2], 19)
                     ^ (self.w[i - 2] >> 10);
 
-                self.w[i] = ((self.w[i - 16] as u64 + s0 as u64 + self.w[i - 7] as u64 + s1 as u64)
-                    % 2u64.pow(32)) as u32;
+                self.w[i] = self.w[i - 16] + s0 + self.w[i - 7] + s1;
             }
 
             self.compress();
@@ -137,34 +136,32 @@ impl Sha2 {
 
             let ch = (e & f) ^ (!e & g);
 
-            let temp1: u32 =
-                ((h as u64 + s1 as u64 + ch as u64 + self.k[i] as u64 + self.w[i] as u64)
-                    % 2u64.pow(32)) as u32;
+            let temp1 = h + s1 + ch + self.k[i] + self.w[i];
 
             let s0 = u32::rotate_right(a, 2) ^ u32::rotate_right(a, 13) ^ u32::rotate_right(a, 22);
 
             let maj = (a & b) ^ (a & c) ^ (b & c);
 
-            let temp2 = ((s0 as u64 + maj as u64) % 2u64.pow(32)) as u32;
+            let temp2 = s0 + maj;
 
             h = g;
             g = f;
             f = e;
-            e = ((d as u64 + temp1 as u64) % 2u64.pow(32)) as u32;
+            e = d + temp1;
             d = c;
             c = b;
             b = a;
-            a = ((temp1 as u64 + temp2 as u64) % 2u64.pow(32)) as u32;
+            a = temp1 + temp2;
         }
 
         //Add the compressed chunk to the current hash value:
-        self.h[0] = ((self.h[0] as u64 + a as u64) % 2u64.pow(32)) as u32;
-        self.h[1] = ((self.h[1] as u64 + b as u64) % 2u64.pow(32)) as u32;
-        self.h[2] = ((self.h[2] as u64 + c as u64) % 2u64.pow(32)) as u32;
-        self.h[3] = ((self.h[3] as u64 + d as u64) % 2u64.pow(32)) as u32;
-        self.h[4] = ((self.h[4] as u64 + e as u64) % 2u64.pow(32)) as u32;
-        self.h[5] = ((self.h[5] as u64 + f as u64) % 2u64.pow(32)) as u32;
-        self.h[6] = ((self.h[6] as u64 + g as u64) % 2u64.pow(32)) as u32;
-        self.h[7] = ((self.h[7] as u64 + h as u64) % 2u64.pow(32)) as u32;
+        self.h[0] += a;
+        self.h[1] += b;
+        self.h[2] += c;
+        self.h[3] += d;
+        self.h[4] += e;
+        self.h[5] += f;
+        self.h[6] += g;
+        self.h[7] += h;
     }
 }
