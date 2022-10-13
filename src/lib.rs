@@ -111,7 +111,8 @@ impl Sha2 {
                     ^ u32::rotate_right(self.w[i - 2], 19)
                     ^ (self.w[i - 2] >> 10);
 
-                self.w[i] = self.w[i - 16] + s0 + self.w[i - 7] + s1;
+		self.w[i] = self.w[i-16].wrapping_add(s0).wrapping_add(self.w[i-7]).wrapping_add(s1);
+                //self.w[i] = (self.w[i - 16] + s0 + self.w[i - 7] + s1) % 2u32.pow(32);
             }
 
             self.compress();
@@ -136,32 +137,33 @@ impl Sha2 {
 
             let ch = (e & f) ^ (!e & g);
 
-            let temp1 = h + s1 + ch + self.k[i] + self.w[i];
+            //let temp1 = h + s1 + ch + self.k[i] + self.w[i];
+	    let temp1 = h.wrapping_add(s1).wrapping_add(ch).wrapping_add(self.k[i]).wrapping_add(self.w[i]);
 
             let s0 = u32::rotate_right(a, 2) ^ u32::rotate_right(a, 13) ^ u32::rotate_right(a, 22);
 
             let maj = (a & b) ^ (a & c) ^ (b & c);
 
-            let temp2 = s0 + maj;
+            let temp2 = s0.wrapping_add(maj);
 
             h = g;
             g = f;
             f = e;
-            e = d + temp1;
+            e = d.wrapping_add(temp1);
             d = c;
             c = b;
             b = a;
-            a = temp1 + temp2;
+            a = temp1.wrapping_add(temp2);
         }
 
         //Add the compressed chunk to the current hash value:
-        self.h[0] += a;
-        self.h[1] += b;
-        self.h[2] += c;
-        self.h[3] += d;
-        self.h[4] += e;
-        self.h[5] += f;
-        self.h[6] += g;
-        self.h[7] += h;
+        self.h[0] = self.h[0].wrapping_add(a);
+        self.h[1] = self.h[1].wrapping_add(b);
+        self.h[2] = self.h[2].wrapping_add(c);
+        self.h[3] = self.h[3].wrapping_add(d);
+        self.h[4] = self.h[4].wrapping_add(e);
+        self.h[5] = self.h[5].wrapping_add(f);
+        self.h[6] = self.h[6].wrapping_add(g);
+        self.h[7] = self.h[7].wrapping_add(h);
     }
 }
