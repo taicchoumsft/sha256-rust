@@ -47,17 +47,21 @@ impl Sha2 {
         }
     }
 
-    pub fn sum(self, filename: &String) -> io::Result<String> {
-        self.algo(filename)
-    }
-
-    fn algo(mut self, filepath: &String) -> io::Result<String> {
+    // File and [u8] implement the io::Read trait, this allows us
+    // to use the same loop code to take either a file or a string as input.
+    pub fn read_from_file(self, filepath: &String) -> io::Result<String> {
         // Create path to file
         let path = Path::new(filepath);
 
-        // Open path in read-only
         let mut file = File::open(&path)?;
+	self.algo(&mut file)
+    }
 
+    pub fn read_from_string(self, input_string: &String) -> io::Result<String> {
+	self.algo(&mut input_string.as_bytes())
+    }
+
+    fn algo(mut self, file: &mut impl Read) -> io::Result<String> {
         // Break into 512-bit chunks - every element in the vector represents 1 byte
         let chunk_size: usize = 0x200 / 8;
         let mut total_size: usize = 0;
