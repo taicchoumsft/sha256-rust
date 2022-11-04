@@ -61,6 +61,29 @@ impl Sha2 {
 	self.algo(&mut input_string.as_bytes())
     }
 
+    fn hex_to_bytes(s: &str) -> Option<Vec<u8>> {
+	if s.len() % 2 == 0 {
+	    (0..s.len())
+		.step_by(2)
+		.map(|i| s.get(i..i + 2)
+		     .and_then(|sub| u8::from_str_radix(sub, 16).ok()))
+		.collect()
+	} else {
+	    None
+	}
+    }
+
+    /// Interpret the hex input as bytes - do not convert to ascii representation before running algo
+    pub fn read_hex_string_as_bytes(self, input_string: &str) -> io::Result<String> {
+	if let Some(byte_data) = Sha2::hex_to_bytes(input_string) {
+	    use std::io::Cursor;
+	    let mut cursor = Cursor::new(byte_data);
+	    self.algo(&mut cursor)
+	} else {
+	    Err(io::Error::new(io::ErrorKind::InvalidData, "Cannot parse hex string into bytes"))
+	}
+    }
+
     fn algo(mut self, file: &mut impl Read) -> io::Result<String> {
         // Break into 512-bit chunks - every element in the vector represents 1 byte
         let chunk_size: usize = 0x200 / 8;

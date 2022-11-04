@@ -18,6 +18,16 @@ fn main() {
 		    }
 		}
 	    },
+	    "-b" => {
+		match sha2obj.read_hex_string_as_bytes(&args[2]) {
+		    Ok(s) => {
+			println!("{:?}", s);
+		    }
+		    Err(_) => {
+			eprintln!("Could not read file");
+		    }
+		}
+	    }
 	    _ => {
 		eprintln!("Pass in string: -s <string>");
 	    }
@@ -31,7 +41,7 @@ fn main() {
             }
         },
         _ => {
-            println!("<filename> or -s <string> needed");
+            println!("<filename>, -b <hex_string> or -s <string> needed");
         }
     };
 }
