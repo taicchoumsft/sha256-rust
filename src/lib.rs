@@ -150,7 +150,7 @@ impl Sha2 {
         let digest = self
             .h
             .iter()
-            .map(|i| format!("{:x}", i))
+            .map(|i| format!("{:08x}", i))
             .collect::<String>();
 
         Ok(digest)
